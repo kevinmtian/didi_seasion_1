@@ -49,6 +49,7 @@ for(h_i in 1:length(hashids)){
     predict_res = rbind(predict_res, cbind(tmp[,c(1,2,4)],data.frame(pre=p_res)))
 }
 
+
 #====== 生成提交结果 =======
 tmp = predict_res
 tmp$pre = floor(tmp$pre)
