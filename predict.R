@@ -48,9 +48,13 @@ for(index in 1:nrow(predict_data)){
   i = which(pd$hashid==traffic$hashid & pd$date==traffic$Date & pd$time>traffic$TimePiece )
   if(length(i)==0){
     print(pd)
-    #使用中位值
-    traffic_feature = c(traffic_feature, 
-        median_traffic$median_traffic[which(median_traffic$hashid==pd$hashid & median_traffic$TimePiece==(pd$time-1))])
+    md = which(median_traffic$hashid==pd$hashid & median_traffic$TimePiece==(pd$time-1))
+    if(length(md)==0)
+      #使用全局中位值
+      traffic_feature = c(traffic_feature, median(median_traffic$median_traffic))
+    else
+      #使用区域 中位值
+      traffic_feature = c(traffic_feature, median_traffic$median_traffic[md])
   }else
     #取最近的一个traffic值
     traffic_feature = c(traffic_feature, traffic$traffic[i[length(i)]])
