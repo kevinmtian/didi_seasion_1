@@ -1,6 +1,9 @@
 # hash map
 hash_id = read.table("training_data/cluster_map/cluster_map", sep = "\t", header = FALSE, colClasses = "character")
 
+#weather
+weather = read.table("features/weather.txt", sep = ",", header = TRUE, colClasses = c("character","integer","factor"))
+
 #last three piece mean, 暂不可用
 last3mean_supply = read.table("aver_supply.csv",sep = ",", header = TRUE)
 last3mean_supply = sqldf("select h.V1 hashid,l.date,l.slot,l.supply last3mean from last3mean_supply l, hash_id h where l.districtId=h.V2")
