@@ -1,4 +1,4 @@
-#===================  predict-date
+#===================生成  predict-data
 predict_data = read.table("predict_date_1.txt",header = FALSE, colClasses = "character")
 predict_data$date = as.character(as.POSIXct(predict_data$V1,format="%Y-%m-%d"))
 predict_data$weekday = weekdays(as.POSIXct(predict_data$V1,format="%Y-%m-%d"))
@@ -25,7 +25,7 @@ test_demand$test_demand = as.integer(test_demand$test_demand)
 test_demand = test_demand[test_demand$TimePiece > 43 & test_demand$TimePiece < 143,]
 test_demand = test_demand[order(test_demand$hashid, test_demand$date, test_demand$TimePiece),]
 
-#生成预测点的 前一时间片 supply 值
+#生成预测点的 前当前时间片特征值
 supply_feature = c()
 for(index in 1:nrow(predict_data)){
   pd = predict_data[index,]
@@ -43,16 +43,16 @@ predict_data$supply_feature = supply_feature
 
 #生成预测点的  traffic 值
 traffic_feature = c()
-tq = quantile(median_traffic$median_traffic)[3]
 for(index in 1:nrow(predict_data)){
   pd = predict_data[index,]
   i = which(pd$hashid==traffic$hashid & pd$date==traffic$Date & pd$time>traffic$TimePiece )
   if(length(i)==0){
     print(pd)
     #使用中位值
-    traffic_feature = c(traffic_feature, tq)
+    traffic_feature = c(traffic_feature, 
+        median_traffic$median_traffic[which(median_traffic$hashid==pd$hashid & median_traffic$TimePiece==(pd$time-1))])
   }else
-    #取最近的一个supply值
+    #取最近的一个traffic值
     traffic_feature = c(traffic_feature, traffic$traffic[i[length(i)]])
 }
 predict_data$traffic_feature = traffic_feature
@@ -72,11 +72,11 @@ for(index in 1:nrow(predict_data)){
     demand_feature = c(demand_feature, 
                        median_demand$median_demand[which(median_demand$hashid==pd$hashid & median_demand$TimePiece==(pd$TimePiece-1))])
   }else
-    #取最近的一个supply值
+    #取最近的一个demand值
     demand_feature = c(demand_feature, test_demand$test_demand[i[length(i)]])
 }
 predict_data$demand_feature = demand_feature
-# ========
+# ======== 
 predict_data$TimePiece = as.factor(predict_data$TimePiece)
 predict_data$weekday = as.factor(predict_data$weekday)
 
@@ -84,8 +84,5 @@ predict_data$weekday = as.factor(predict_data$weekday)
 predict_data$gap_feature = (predict_data$demand_feature - predict_data$supply_feature)
 
 
-#combine last3mean
-tmp = sqldf("select * from last3mean_gap l, predict_data p where l.hashid=p.hashid and l.date=p.Date and l.slot=p.TimePiece")
-tmp = tmp[,c(4:ncol(tmp))]
 
 
