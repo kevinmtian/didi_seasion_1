@@ -66,4 +66,4 @@ train_data_supply = sqldf(paste0("select s.hashid, s.date, s.TimePiece, weekday,
 train_data_demand = sqldf(paste0("select s.hashid, s.date, s.TimePiece, weekday, demand, t.traffic",
                           " from demand s, traffic t where s.hashid=t.hashid and s.date=t.Date and s.TimePiece=t.TimePiece"))
 
-#加入weather特征
+

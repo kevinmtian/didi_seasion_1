@@ -10,6 +10,8 @@ predict_data = sqldf("select * from tmp,predict_data")
 #===================       traffic
 #traffic = read.table("features/traffic.csv",sep = ",", header = TRUE, colClasses = c("character","character","integer","numeric"))
 
+#==================      weather
+
 
 #==================      predict-supply
 test_supply = read.table("features/demand_supply_gap_v1/test_supply.txt", sep = ",",header = TRUE, colClasses = "character")
@@ -74,16 +76,43 @@ for(index in 1:nrow(predict_data)){
     print(pd)
     #使用上一时刻的中位值
     demand_feature = c(demand_feature, 
-                       median_demand$median_demand[which(median_demand$hashid==pd$hashid & median_demand$TimePiece==(pd$TimePiece-1))])
+                median_demand$median_demand[which(median_demand$hashid==pd$hashid & median_demand$TimePiece==(pd$TimePiece-1))])
   }else
     #取最近的一个demand值
     demand_feature = c(demand_feature, test_demand$test_demand[i[length(i)]])
 }
 predict_data$demand_feature = demand_feature
+
+#weather feature
+weather_feature_index = c()
+for(index in 1:nrow(predict_data)){
+  pd = predict_data[index,]
+  windex = which(pd$Date==test_weather_data$date & (pd$TimePiece>test_weather_data$time | pd$TimePiece>(test_weather_data$time-11) ))
+  if(length(windex)==0)
+    print(pd)
+  weather_feature_index = c(weather_feature_index, windex[length(windex)])
+}
+predict_data = cbind(predict_data,test_weather_data[weather_feature_index,c(2,3,4)])
+
 # ======== 
 predict_data$TimePiece = as.factor(predict_data$TimePiece)
-predict_data$weekday = as.factor(predict_data$weekday)
-
+predict_data$weekday = sapply(predict_data$weekday, function(x){
+  if(x=="星期一")
+    factor(1)
+  else if(x=="星期二")
+    factor(2)
+  else if(x=="星期三")
+    factor(3)
+  else if(x=="星期四")
+    factor(4)
+  else if(x=="星期五")
+    factor(5)
+  else if(x=="星期六")
+    factor(6)
+  else
+    factor(7)
+})
+predict_data$weather = as.integer(predict_data$weather)
 
 predict_data$gap_feature = (predict_data$demand_feature - predict_data$supply_feature)
 
