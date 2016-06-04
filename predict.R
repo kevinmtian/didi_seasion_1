@@ -1,3 +1,4 @@
+require(sqldf)
 #===================生成  predict-data
 predict_data = read.table("predict_date_1.txt",header = FALSE, colClasses = "character")
 predict_data$date = as.character(as.POSIXct(predict_data$V1,format="%Y-%m-%d"))
@@ -112,10 +113,13 @@ predict_data$weekday = sapply(predict_data$weekday, function(x){
   else
     factor(7)
 })
-predict_data$weather = as.integer(predict_data$weather)
+predict_data$weather = as.factor(predict_data$weather)
 
 predict_data$gap_feature = (predict_data$demand_feature - predict_data$supply_feature)
 
-
+#combine last3mean
+predict_data = sqldf(paste0("select p.hashid,p.V1,p.Date,p.TimePiece,p.weekday,p.traffic_feature,p.weather,p.temperature,p.PM,"
+                   ,"p.gap_feature,l.last3mean_gap ",
+                   "from last3mean_gap l, predict_data p where l.hashid=p.hashid and l.date=p.Date and l.slot=p.TimePiece"))
 
 

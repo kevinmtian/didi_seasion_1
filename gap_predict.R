@@ -5,11 +5,12 @@ train_data_gap = cbind(train_data_demand[,c(1,2,3,4,6)],data.frame(gap=(train_da
 #weather 
 #tmp = sqldf("select * from train_weather_data w, train_data_gap t where ")
 #combine last3mean
-#tmp = sqldf("select * from last3mean_gap l, train_data_gap p where l.hashid=p.hashid and l.date=p.date and l.slot=p.TimePiece")
+train_data_gap = sqldf(paste0("select p.hashid,p.date,p.TimePiece,p.weekday,p.traffic,p.gap,l.last3mean_gap ",
+            "from last3mean_gap l, train_data_gap p where l.hashid=p.hashid and l.date=p.date and l.slot=p.TimePiece"))
 #tmp = tmp[,c(4:ncol(tmp))]
 
 
-hashids = unique(train_data_gap$hashid)
+hashids = unique(traffic$hashid)
 for(h_i in 1:length(hashids)){
   #对没一个区域逐个训练-预测
   train_feature = train_data_gap[train_data_gap$hashid==hashids[h_i],]
@@ -45,7 +46,7 @@ for(h_i in 1:length(hashids)){
   train_feature$traffic_feature = traffic_value
   train_feature = train_feature[-delete_index,]
   train_feature = train_feature[,c("TimePiece","weekday","gap_feature","traffic_feature",
-                                   "weather","temperature","PM","gap")]
+                                   "temperature","PM","last3mean_gap","gap")]
   train_feature$weekday = sapply(train_feature$weekday, function(x){
     if(x=="星期一")
       factor(1)
@@ -62,27 +63,28 @@ for(h_i in 1:length(hashids)){
     else
       factor(7)
   })
-  train_feature$TimePiece = as.character(train_feature$TimePiece)
-  train_feature$weather = as.integer(train_feature$weather)
+  train_feature$TimePiece = as.factor(train_feature$TimePiece)
+  #train_feature$weather = as.integer(train_feature$weather)
 #==================  特征预处理结束 ======================  
   
-  fit = rpart(gap ~ TimePiece + weekday + traffic_feature + gap_feature + weather + temperature + PM, data = train_feature)
+  fit = rpart(gap ~ TimePiece + weekday + traffic_feature + gap_feature + temperature + PM + last3mean_gap, data = train_feature)
   tmp = predict_data[predict_data$hashid==hashids[h_i] ,]
   #tmp = predict_data[predict_data$hashid=="d4ec2125aff74eded207d2d915ef682f",]
-  p_res = predict(fit, tmp[,c("TimePiece","weekday","gap_feature","traffic_feature","weather","temperature","PM")])
+  p_res = predict(fit, tmp[,c("TimePiece","weekday","gap_feature","traffic_feature","temperature","PM","last3mean_gap")])
   if(is.null(predict_res))
     predict_res = cbind(tmp[,c(1,2,4)],data.frame(pre=p_res))
   else
     predict_res = rbind(predict_res, cbind(tmp[,c(1,2,4)],data.frame(pre=p_res)))
 }
 
-
+predict_res = rbind(predict_res, cbind(predict_data[predict_data$hashid=="c4ec24e0a58ebedaa1661e5c09e47bb5",c(1,2,4)]
+                                       ,data.frame(pre=1)))
 #====== 生成提交结果 =======
 tmp = predict_res
-tmp$pre = floor(tmp$pre)
+tmp$pre = round(tmp$pre)
 tmp = sqldf("select h.V2 hashid, p.V1 time, TimePiece, pre from hash_id h, tmp p where h.V1=p.hashid")
-write.table(tmp[,c(1,2,4)],file = "res/submit_res_v2.csv",quote = FALSE,sep = ",", row.names = FALSE, col.names = FALSE)
+write.table(tmp[,c(1,2,4)],file = "res/submit_res_v3.csv",quote = FALSE,sep = ",", row.names = FALSE, col.names = FALSE)
 
 
-
+quantile(train_data_gap[train_data_gap$hashid=="c4ec24e0a58ebedaa1661e5c09e47bb5",]$gap)
 
